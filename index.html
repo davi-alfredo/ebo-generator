@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Banner - EBO Tabernáculo de Deus</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Montserrat', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col md:flex-row">
+
+  <!-- PAINEL DE CONTROLE / FORMULÁRIO -->
+  <div class="w-full md:w-1/2 lg:w-4/12 p-6 overflow-y-auto bg-slate-800 border-r border-slate-700 shadow-xl flex flex-col justify-between">
+    <div>
+      <div class="flex items-center gap-3 mb-6 border-b border-slate-700 pb-4">
+        <div class="bg-blue-600 text-white p-3 rounded-xl shadow-lg">
+          <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-white">Gerador Fiel EBO</h1>
+          <p class="text-xs text-slate-400">Edição direta sobre a composição original</p>
+        </div>
+      </div>
+
+      <form id="artForm" class="space-y-4" onsubmit="return false;">
+        <!-- Número da Aula -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Número da Aula</label>
+          <input type="text" id="aulaNum" value="Aula 5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <!-- Tema da Aula -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Tema da Aula</label>
+          <textarea id="aulaTema" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">O mistério revelado e uma oração fervorosa</textarea>
+        </div>
+
+        <!-- Versículo / Referência -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Referência / Versículo</label>
+          <input type="text" id="aulaVersiculo" value="Efésios 3.1–21" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+      </form>
+    </div>
+
+    <div class="mt-6 pt-4 border-t border-slate-700 space-y-3">
+      <button id="downloadBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
+        <i class="fa-solid fa-download"></i> Baixar Arte Final HD
+      </button>
+    </div>
+  </div>
+
+  <!-- PRÉ-VISUALIZAÇÃO / CANVAS -->
+  <div class="w-full md:w-1/2 lg:w-8/12 p-6 flex items-center justify-center bg-slate-950 min-h-[500px]">
+    <div class="relative max-w-full flex flex-col items-center">
+      <div class="border border-slate-700 rounded-2xl overflow-hidden shadow-2xl bg-black max-h-[88vh] aspect-[9/16] flex items-center justify-center">
+        <canvas id="artCanvas" width="1080" height="1920" class="w-full h-full object-contain"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('artCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const aulaNumInput = document.getElementById('aulaNum');
+    const aulaTemaInput = document.getElementById('aulaTema');
+    const aulaVersiculoInput = document.getElementById('aulaVersiculo');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // Imagem de fundo fixa
+    let baseImg = new Image();
+    
+    // Fundo base incorporado via Canvas / SVG de alta qualidade idêntico à arte
+    function buildDefaultBackground() {
+      const bgCanvas = document.createElement('canvas');
+      bgCanvas.width = 1080;
+      bgCanvas.height = 1920;
+      const bctx = bgCanvas.getContext('2d');
+
+      // Topo azul degrade
+      const bgGrad = bctx.createLinearGradient(0, 0, 0, 1920);
+      bgGrad.addColorStop(0, '#0088ff');
+      bgGrad.addColorStop(0.2, '#0055cc');
+      bgGrad.addColorStop(0.4, '#eef7ff');
+      bgGrad.addColorStop(0.65, '#d0e6ff');
+      bgGrad.addColorStop(0.85, '#021838');
+      bgGrad.addColorStop(1, '#000c24');
+      bctx.fillStyle = bgGrad;
+      bctx.fillRect(0, 0, 1080, 1920);
+
+      // Curvas de luz no topo
+      bctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      bctx.lineWidth = 15;
+      bctx.beginPath();
+      bctx.moveTo(-100, 200);
+      bctx.bezierCurveTo(300, -50, 800, 300, 1180, -50);
+      bctx.stroke();
+
+      bctx.lineWidth = 8;
+      bctx.beginPath();
+      bctx.moveTo(-100, 350);
+      bctx.bezierCurveTo(400, 50, 700, 400, 1180, 100);
+      bctx.stroke();
+
+      // Logo EBO Tabernáculo de Deus (Vetorizado idêntico)
+      // Tabernáculo de Deus Oval
+      bctx.fillStyle = '#002b66';
+      bctx.beginPath();
+      bctx.ellipse(540, 140, 220, 70, 0, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.strokeStyle = '#ffffff';
+      bctx.lineWidth = 6;
+      bctx.stroke();
+
+      bctx.textAlign = 'center';
+      bctx.fillStyle = '#ffffff';
+      bctx.font = '900 28px Montserrat, sans-serif';
+      bctx.fillText('TABERNÁCULO', 540, 125);
+      bctx.font = '900 40px Montserrat, sans-serif';
+      bctx.fillText('DE DEUS', 540, 165);
+
+      // Texto EBO Grande
+      bctx.font = '900 190px Montserrat, sans-serif';
+      bctx.fillStyle = '#03204d';
+      bctx.fillText('EB', 430, 390);
+
+      // Círculo com Bíblia no O do EBO
+      bctx.beginPath();
+      bctx.arc(710, 325, 95, 0, Math.PI * 2);
+      bctx.fill();
+      drawBookIcon(bctx, 710, 305, '#ffffff', 4);
+
+      // Faixas de Subtítulo
+      bctx.strokeStyle = '#03204d';
+      bctx.lineWidth = 3;
+      bctx.beginPath();
+      bctx.moveTo(140, 465); bctx.lineTo(260, 465);
+      bctx.moveTo(820, 465); bctx.lineTo(940, 465);
+      bctx.stroke();
+
+      bctx.fillStyle = '#03204d';
+      bctx.font = '800 32px Montserrat, sans-serif';
+      bctx.fillText('ESCOLA BÍBLICA ONLINE', 540, 475);
+
+      // Pílula "SÉRIE CARTAS DE PAULO"
+      drawPill(bctx, 540, 560, 730, 80, '#02205c');
+      bctx.fillStyle = '#ffffff';
+      bctx.font = '800 34px Montserrat, sans-serif';
+      bctx.fillText('SÉRIE CARTAS DE PAULO', 540, 572);
+
+      // Representação 3D da Bíblia Aberta na mesa
+      drawBibleIllustration(bctx, 540, 830);
+
+      // Curvas decorativas no rodapé
+      bctx.fillStyle = 'rgba(0, 122, 255, 0.4)';
+      bctx.beginPath();
+      bctx.moveTo(0, 1550);
+      bctx.bezierCurveTo(400, 1620, 700, 1500, 1080, 1560);
+      bctx.lineTo(1080, 1920); bctx.lineTo(0, 1920);
+      bctx.fill();
+
+      return bgCanvas.toDataURL();
+    }
+
+    // Inicialização da imagem base
+    baseImg.onload = () => renderCanvas();
+    baseImg.src = 'images/arte-fundo.jpg';
+
+    [aulaNumInput, aulaTemaInput, aulaVersiculoInput].forEach(input => {
+      input.addEventListener('input', renderCanvas);
+    });
+
+    function renderCanvas() {
+      const W = canvas.width;  // 1080
+      const H = canvas.height; // 1920
+
+      // 1. DESENHAR IMAGEM BASE COMPLETA
+      ctx.drawImage(baseImg, 0, 0, W, H);
+
+      // 2. CONTEÚDO DINÂMICO DA AULA
+      const pillY = 1150;
+      const pillWidth = 490;
+      const pillHeight = 115;
+      
+      // Desenho da pílula azul 3D idêntica
+      drawPill3D(ctx, W/2, pillY, pillWidth, pillHeight);
+      
+      // Texto "Aula X" PERFEITAMENTE CENTRALIZADO dentro da pílula
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '800 68px Montserrat, sans-serif';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 3;
+      ctx.fillText(aulaNumInput.value, W/2, pillY);
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Linhas azuis laterais da pílula
+      ctx.strokeStyle = '#0066ff';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(60, pillY); ctx.lineTo(W/2 - (pillWidth/2) - 20, pillY);
+      ctx.moveTo(W/2 + (pillWidth/2) + 20, pillY); ctx.lineTo(W - 60, pillY);
+      ctx.stroke();
+
+      // --- TEMA DA AULA ---
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#061738';
+      ctx.font = '800 60px Montserrat, sans-serif';
+      
+      const maxTemaWidth = 960;
+      const lines = wrapText(ctx, aulaTemaInput.value, maxTemaWidth);
+      
+      let startY = 1330;
+      if (lines.length === 1) startY = 1350;
+      else if (lines.length > 2) startY = 1290;
+
+      const lineHeight = 72;
+      lines.forEach((line, idx) => {
+        ctx.fillText(line, W/2, startY + (idx * lineHeight));
+      });
+
+      // --- VERSÍCULO / REFERÊNCIA ---
+      const versiculoY = startY + (lines.length * lineHeight) + 20;
+      ctx.fillStyle = '#004db3';
+      ctx.font = '800 54px Montserrat, sans-serif';
+      ctx.fillText(aulaVersiculoInput.value, W/2, versiculoY);
+
+      // Linhas laterais do Versículo
+      ctx.strokeStyle = '#0052cc';
+      ctx.lineWidth = 3;
+      const vWidth = ctx.measureText(aulaVersiculoInput.value).width;
+      ctx.beginPath();
+      ctx.moveTo(80, versiculoY - 18); ctx.lineTo(W/2 - (vWidth/2) - 25, versiculoY - 18);
+      ctx.moveTo(W/2 + (vWidth/2) + 25, versiculoY - 18); ctx.lineTo(W - 80, versiculoY - 18);
+      ctx.stroke();
+
+    }
+
+    // Auxiliares de Desenho
+    function drawPill(c, x, y, w, h, bg) {
+      c.fillStyle = bg;
+      c.beginPath();
+      c.roundRect(x - w/2, y - h/2, w, h, h/2);
+      c.fill();
+    }
+
+    function drawPill3D(c, x, y, width, height) {
+      c.save();
+      const rx = x - width/2;
+      const ry = y - height/2;
+      const radius = height / 2;
+
+      c.shadowColor = 'rgba(0, 100, 255, 0.8)';
+      c.shadowBlur = 20;
+
+      c.beginPath();
+      c.roundRect(rx, ry, width, height, radius);
+      
+      const grad = c.createLinearGradient(rx, ry, rx, ry + height);
+      grad.addColorStop(0, '#0066ff');
+      grad.addColorStop(0.4, '#004cd6');
+      grad.addColorStop(1, '#002699');
+      c.fillStyle = grad;
+      c.fill();
+
+      c.shadowBlur = 0;
+      c.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      c.lineWidth = 3;
+      c.stroke();
+
+      c.restore();
+    }
+
+    function drawBookIcon(c, x, y, color = '#ffffff', lw = 3.5) {
+      c.save();
+      c.strokeStyle = color;
+      c.lineWidth = lw;
+      c.lineJoin = 'round';
+      c.lineCap = 'round';
+      c.beginPath();
+      c.moveTo(x, y + 10);
+      c.quadraticCurveTo(x + 15, y + 2, x + 25, y + 8);
+      c.lineTo(x + 25, y + 36);
+      c.quadraticCurveTo(x + 15, y + 30, x, y + 38);
+      c.quadraticCurveTo(x - 15, y + 30, x - 25, y + 36);
+      c.lineTo(x - 25, y + 8);
+      c.quadraticCurveTo(x - 15, y + 2, x, y + 10);
+      c.moveTo(x, y + 10); c.lineTo(x, y + 38);
+      c.stroke();
+      c.restore();
+    }
+
+    function drawBibleIllustration(c, cx, cy) {
+      c.save();
+      // Páginas da bíblia aberta simulada no fundo
+      const bGrad = c.createLinearGradient(cx - 300, cy, cx + 300, cy);
+      bGrad.addColorStop(0, '#ffffff');
+      bGrad.addColorStop(0.48, '#e0e0e0');
+      bGrad.addColorStop(0.5, '#999999');
+      bGrad.addColorStop(0.52, '#e0e0e0');
+      bGrad.addColorStop(1, '#ffffff');
+
+      c.fillStyle = bGrad;
+      c.beginPath();
+      c.moveTo(cx - 380, cy + 180);
+      c.quadraticCurveTo(cx - 200, cy - 60, cx, cy + 30);
+      c.quadraticCurveTo(cx + 200, cy - 60, cx + 380, cy + 180);
+      c.lineTo(cx + 360, cy + 220);
+      c.quadraticCurveTo(cx + 200, cy + 70, cx, cy + 80);
+      c.quadraticCurveTo(cx - 200, cy + 70, cx - 360, cy + 220);
+      c.closePath();
+      c.fill();
+      c.restore();
+    }
+
+    function wrapText(c, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = words[0] || '';
+
+      for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = c.measureText(currentLine + " " + word).width;
+        if (width < maxWidth) {
+          currentLine += " " + word;
+        } else {
+          lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      lines.push(currentLine);
+      return lines;
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      const filename = (aulaNumInput.value || 'aula').toLowerCase().replace(/\s+/g, '_');
+      link.download = `EBO_${filename}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
+      link.click();
+    });
+  </script>
+</body>
+</html>
